@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project 1</title>
+<style>
+  body { max-width: 800px; margin: 20px auto; padding: 0 16px; font-family: Arial, sans-serif; line-height: 1.5; background: #fff; color: #000; }
+  img { max-width: 100%; }
+  table { border-collapse: collapse; font-size: 13px; }
+  td, th { border: 1px solid #999; padding: 3px 6px; }
+</style>
+</head>
+<body>
+
+<h1>Project 1: Pretrained Vision and Vision-Language Models</h1>
+<p>Bryson</p>
+
+<h2>Setup</h2>
+<p>Google Colab, CPU. Python 3.13.16, torch 2.11.0, torchvision 0.26.0.</p>
+<p>Part 1: torchvision vit_b_16 with ViT_B_16_Weights.IMAGENET1K_V1. Preprocessing from weights.transforms(): resize to 256, center crop 224, ImageNet normalization.</p>
+<p>Part 2: OpenAI CLIP ViT-B/32 (float32). Preprocessing from clip.load: resize to 224 (bicubic), center crop 224, CLIP normalization. Image embeddings were saved to a .npy file.</p>
+
+<h2>Images</h2>
+<p>20 photos I took with my phone, 4 per category. Label mapping: glasses = sunglasses (837), mouse = mouse (673), mug = coffee mug (504), watch = digital watch (531), water bottle = water bottle (898). ImageNet has no eyeglasses or smartwatch class, so glasses and watch use the closest labels.</p>
+
+<h2>Part 1, Task 1</h2>
+<p>A 224 x 224 image with 16 x 16 patches gives 196 patches. With the CLS token the sequence length is 197.</p>
+<img src="figures/patches.png" alt="patches">
+<p><b>Patch projection:</b> a learned linear layer (Conv2d, kernel 16, stride 16) that turns each patch's 768 pixel values into a 768-dimensional embedding.</p>
+<p><b>Positional embeddings:</b> learned vectors added to each token so the model knows where each patch came from, since attention alone has no sense of position.</p>
+<p><b>CLS token:</b> an extra learned token at the front of the sequence. It collects information from all patches through attention, and its output is used for classification.</p>
+<p>My patch function only cuts the image into raw pixel squares. The model's patch projection is learned and turns each patch into features. The figure below shows some of its learned filters.</p>
+<img src="figures/conv_proj_filters.png" alt="filters">
+
+<h2>Part 1, Task 2</h2>
+<p>Top-1 accuracy: 11/20 (55%).</p>
+<table>
+<tr><th>Image</th><th>Top 1</th><th>Top 2</th><th>Top 3</th><th>Top 4</th><th>Top 5</th></tr>
+<tr><td>glasses 1</td><td>stethoscope 0.674</td><td>lab coat 0.070</td><td>knot 0.031</td><td>fur coat 0.018</td><td>sunglasses 0.005</td></tr>
+<tr><td>glasses 2</td><td>stethoscope 0.525</td><td>notebook 0.077</td><td>cradle 0.022</td><td>iPod 0.017</td><td>laptop 0.017</td></tr>
+<tr><td>glasses 3</td><td>sock 0.159</td><td>sunglasses 0.088</td><td>stethoscope 0.085</td><td>park bench 0.048</td><td>loupe 0.041</td></tr>
+<tr><td>glasses 4</td><td>cassette 0.428</td><td>spotlight 0.066</td><td>loupe 0.054</td><td>stethoscope 0.050</td><td>cassette player 0.027</td></tr>
+<tr><td>mouse 1</td><td>mouse 0.846</td><td>mousetrap 0.009</td><td>computer keyboard 0.001</td><td>space bar 0.001</td><td>buckle 0.001</td></tr>
+<tr><td>mouse 2</td><td>mouse 0.838</td><td>maze 0.017</td><td>joystick 0.015</td><td>switch 0.010</td><td>computer keyboard 0.002</td></tr>
+<tr><td>mouse 3</td><td>mouse 0.939</td><td>mousetrap 0.003</td><td>hook 0.001</td><td>punching bag 0.001</td><td>buckle 0.001</td></tr>
+<tr><td>mouse 4</td><td>mouse 0.842</td><td>mousetrap 0.010</td><td>computer keyboard 0.004</td><td>joystick 0.004</td><td>switch 0.001</td></tr>
+<tr><td>mug 1</td><td>coffee mug 0.679</td><td>cup 0.086</td><td>whiskey jug 0.049</td><td>espresso 0.030</td><td>consomme 0.017</td></tr>
+<tr><td>mug 2</td><td>coffee mug 0.537</td><td>cup 0.308</td><td>espresso 0.019</td><td>pot 0.006</td><td>vase 0.004</td></tr>
+<tr><td>mug 3</td><td>coffee mug 0.356</td><td>bucket 0.206</td><td>cup 0.169</td><td>espresso 0.027</td><td>soup bowl 0.016</td></tr>
+<tr><td>mug 4</td><td>coffee mug 0.287</td><td>teapot 0.239</td><td>cup 0.118</td><td>coffeepot 0.097</td><td>pitcher 0.044</td></tr>
+<tr><td>watch 1</td><td>scabbard 0.610</td><td>letter opener 0.063</td><td>assault rifle 0.027</td><td>spatula 0.014</td><td>snorkel 0.010</td></tr>
+<tr><td>watch 2</td><td>maze 0.927</td><td>joystick 0.003</td><td>analog clock 0.003</td><td>umbrella 0.001</td><td>cleaver 0.001</td></tr>
+<tr><td>watch 3</td><td>loupe 0.182</td><td>digital watch 0.117</td><td>spatula 0.082</td><td>letter opener 0.066</td><td>ladle 0.035</td></tr>
+<tr><td>watch 4</td><td>loupe 0.585</td><td>scabbard 0.059</td><td>letter opener 0.053</td><td>fountain pen 0.025</td><td>hammer 0.016</td></tr>
+<tr><td>water bottle 1</td><td>projectile 0.579</td><td>missile 0.119</td><td>ashcan 0.033</td><td>punching bag 0.022</td><td>water bottle 0.013</td></tr>
+<tr><td>water bottle 2</td><td>water bottle 0.926</td><td>water jug 0.049</td><td>coffeepot 0.002</td><td>coffee mug 0.001</td><td>pill bottle 0.001</td></tr>
+<tr><td>water bottle 3</td><td>water bottle 0.829</td><td>coffee mug 0.022</td><td>lighter 0.021</td><td>water jug 0.017</td><td>hair spray 0.008</td></tr>
+<tr><td>water bottle 4</td><td>water bottle 0.444</td><td>lighter 0.255</td><td>microphone 0.029</td><td>water jug 0.015</td><td>punching bag 0.008</td></tr>
+</table>
+<p>Confusion matrix ("other" means a label outside my 5 categories):</p>
+<img src="figures/vit_confusion.png" alt="confusion matrix">
+<img src="figures/vit_examples.png" alt="examples">
+<p><b>Successes:</b> mouse 3 (0.939) is a single object on a plain background. Water bottle 2 (0.926) is on a striped surface, but the bottle fills most of the frame.</p>
+<p><b>Incorrect:</b> watch 2 was called a maze (0.927) because the zigzag background covers most of the image. Glasses 1 was called a stethoscope (0.674) because the thin curved frame looks like tubing, and ImageNet has no eyeglasses class.</p>
+<p><b>Uncertain:</b> watch 3 had low confidence (loupe 0.182, digital watch 0.117) because the crop is mostly the band. Mug 4 was correct but only 0.287, since the top-down view also looks like a teapot or cup.</p>
+<p><b>Fixed categories:</b> the model can only pick from 1,000 labels. If the object is not on the list, like my eyeglasses, it cannot say so and picks the closest label instead. I also cannot ask it anything other than which label fits, and adding a new class would require retraining.</p>
+
+<h2>Part 2, Task 1</h2>
+<p>I L2-normalized the image and text embeddings, computed cosine similarity as image @ text.T, multiplied by the learned scale (100) to get logits, and applied softmax over the 5 prompts. The max difference from CLIP's built-in logits was 1.5e-5, which is float32 rounding. Accuracy with "a photo of a {}" was 20/20.</p>
+<img src="figures/clip_sim_logits_probs.png" alt="heatmaps">
+<p>Cosine similarities are all close together (0.20 to 0.34). Logits are cosine x 100, which spreads out the gaps. Softmax turns the logits into probabilities that sum to 1, so a small gap becomes almost 1.00 vs 0.00.</p>
+<p>Softmax depends on the candidates because it only compares the texts it is given. For watch 3, removing the "watch" prompt made "pair of glasses" jump from 0.01 to 0.61, even though its cosine similarity (0.24) did not change.</p>
+
+<h2>Part 2, Task 2</h2>
+<img src="figures/clip_template_confusion.png" alt="template confusion matrices">
+<p>All three templates ("{}", "a photo of a {}", "an image showing a {}") got 20/20, so no prediction changed. The scores did change. Water bottle 1 had 0.851, 0.691, and 0.881. Watch 3 went from 0.869 with the bare word to about 0.985 with either sentence.</p>
+<p>Changing a prompt only changes the text input. The model weights and the image embeddings stay the same. Fine-tuning would change the weights.</p>
+<p>Compared to Part 1: ViT got 55% choosing from 1,000 classes, but 95% when restricted to my 5 classes. CLIP got 100% with 5 prompts. Most of the gap comes from the number of candidates, and CLIP also got the real names like "pair of glasses". The models have different training data and objectives, and 20 images is too small to say one is better.</p>
+
+<h2>Part 2, Task 3</h2>
+<img src="figures/clip_image_image.png" alt="image-image similarity">
+<p>Average similarity within a category was 0.843, and across categories it was 0.651, so images group mostly by object.</p>
+<img src="figures/clip_cross_pairs.png" alt="cross-category pairs">
+<p>The most similar pairs across categories shared other things: mouse 2 and watch 2 have the same zigzag background, mouse 4 and watch 3 are both black objects on the same wood table, glasses 4 and mug 1 are both bright white scenes, and the mugs and water bottle are all drinkware.</p>
+<p>So CLIP mainly captures the object, but background, color, lighting, and object type also affect the similarity.</p>
+
+</body>
+</html>
